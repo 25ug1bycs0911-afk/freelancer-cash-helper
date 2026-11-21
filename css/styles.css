@@ -1,0 +1,635 @@
+/* Freelancer Cash Helper styles - mobile first, wider screens added at the bottom */
+
+/* ---------- Base ---------- */
+:root {
+  --ink: #1f2328;
+  --muted: #6b7280;
+  --line: #e5e7eb;
+  --bg: #f5f6f8;
+  --card: #ffffff;
+  --accent: #2b59c3;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+  line-height: 1.4;
+}
+
+a { color: var(--accent); }
+
+h1, h2, h3 { margin: 0 0 8px; line-height: 1.2; }
+
+.container {
+  padding: 16px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.muted { color: var(--muted); font-size: 14px; }
+.num { text-align: right; white-space: nowrap; }
+
+/* ---------- Header and nav ---------- */
+.site-header {
+  background: var(--ink);
+  color: #fff;
+}
+
+.header-inner {
+  padding: 12px 16px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.app-name {
+  font-size: 18px;
+  margin-bottom: 8px;
+}
+
+.main-nav {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.main-nav a {
+  color: #d1d5db;
+  text-decoration: none;
+  padding: 4px 0;
+  border-bottom: 2px solid transparent;
+}
+
+.main-nav a.active {
+  color: #fff;
+  border-bottom-color: #fff;
+}
+
+/* ---------- Cards and summary ---------- */
+.summary {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+
+.summary-amount {
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.card-list {
+  display: grid;
+  gap: 12px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.client-card {
+  display: block;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px 16px;
+  text-decoration: none;
+  color: var(--ink);
+}
+
+.client-card:active { background: #eef2fb; }
+
+.client-card .client-name { font-weight: 600; font-size: 16px; }
+
+.client-card .client-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 6px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.client-card .client-unpaid {
+  margin-top: 8px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.back-link {
+  display: inline-block;
+  margin-bottom: 12px;
+}
+
+.client-heading {
+  margin-bottom: 16px;
+}
+
+.project {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+
+.project-head {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-bottom: 10px;
+}
+
+.project-foot {
+  margin-top: 10px;
+  text-align: right;
+  font-size: 15px;
+}
+
+/* ---------- Tables (full table on wide screens, cards on phones) ---------- */
+.table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+th, td {
+  text-align: left;
+  padding: 8px 6px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+}
+
+th {
+  font-weight: 600;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* Overdue rows stand out strongly */
+tr.overdue td {
+  background: #fdecea;
+  color: #8a1c1c;
+  font-weight: 600;
+}
+
+/* ---------- Status badges ---------- */
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.badge-paid    { background: #e6f4ea; color: #1e7b34; }
+.badge-unpaid  { background: #fff4d6; color: #9a5b00; }
+.badge-overdue { background: #c62828; color: #fff; }
+.badge-draft   { background: #eceff1; color: #545b64; }
+.badge-part-paid { background: #e3efff; color: #1d4f9c; }
+
+/* Remaining balance shown next to the full amount (can wrap on small screens) */
+.balance-left {
+  white-space: normal;
+  color: var(--muted);
+  font-weight: 400;
+}
+
+/* ---------- Buttons, flash message, payment form ---------- */
+.btn {
+  display: inline-block;
+  max-width: 100%;
+  margin: 2px 6px 2px 0;
+  padding: 6px 12px;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--accent);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+}
+
+.flash {
+  background: #e3efff;
+  color: #1d4f9c;
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin: 0 0 16px;
+  font-size: 14px;
+}
+
+.owe-actions {
+  margin-top: 6px;
+}
+
+.reset-row {
+  margin-top: 24px;
+}
+
+.payment-dialog {
+  width: min(420px, calc(100vw - 32px));
+  max-width: 100%;
+  margin: auto;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--ink);
+  box-sizing: border-box;
+}
+
+.payment-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.payment-dialog h2 {
+  font-size: 18px;
+}
+
+.payment-form label {
+  display: block;
+  margin-bottom: 12px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.payment-form input,
+.payment-form select {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  margin-top: 4px;
+  padding: 8px 10px;
+  border: 1px solid #c4c9d1;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 16px;
+  box-sizing: border-box;
+}
+
+.payment-form input[type="checkbox"] {
+  display: inline-block;
+  width: auto;
+  margin: 0 8px 0 0;
+}
+
+.payment-form .check-label {
+  font-weight: 400;
+}
+
+/* Three percentage boxes side by side (stacked boxes are the same width on phones) */
+.split-fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  max-width: 100%;
+}
+
+.split-fields[hidden] {
+  display: none;
+}
+
+/* "Add project" button row above the client list and the dashboard */
+.add-row {
+  margin-bottom: 16px;
+}
+
+.form-error {
+  margin: 0 0 12px;
+  color: #c62828;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Drafted reminder text: wraps long words, never wider than the dialog */
+.reminder-message {
+  max-width: 100%;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f9fafb;
+  font-size: 14px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  box-sizing: border-box;
+}
+
+.reminder-note {
+  display: inline-block;
+  margin: 2px 0;
+}
+
+.not-found {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 20px 16px;
+}
+
+/* ---------- Dashboard ---------- */
+/* Summary cards: 2 across on phones (set wider below) */
+.dash-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.dash-card {
+  margin-bottom: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.dash-card .summary-amount { font-size: 20px; }
+
+.dash-title {
+  margin: 20px 0 10px;
+  font-size: 18px;
+}
+
+/* Overdue text is red */
+.overdue-text {
+  color: #c62828;
+  font-weight: 600;
+}
+
+/* "Who owes me" cards: stack vertically */
+.owe-list {
+  display: grid;
+  gap: 12px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.owe-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px 16px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.owe-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-bottom: 6px;
+}
+
+.owe-name {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.owe-total { font-weight: 700; }
+
+.owe-rows {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.owe-row {
+  border-top: 1px solid var(--line);
+  padding: 8px 0;
+}
+
+.owe-line {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+
+/* "Do this today" alert cards: stack and wrap, never wider than the screen */
+.alerts {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 8px;
+  min-width: 0;
+}
+
+.alerts .dash-title { margin-top: 0; }
+
+.alert-card {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--line);
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  overflow-wrap: anywhere;
+}
+
+.alert-danger { border-left-color: #c62828; }
+.alert-warn { border-left-color: #d97706; }
+.alert-info { border-left-color: #2563eb; }
+
+.alert-text {
+  flex: 1 1 220px;
+  min-width: 0;
+  margin: 0;
+}
+
+.alert-actions {
+  max-width: 100%;
+}
+
+.alert-actions .btn,
+.alert-more {
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+.alert-more {
+  justify-self: start;
+}
+
+/* ---------- Wider screens ---------- */
+@media (min-width: 640px) {
+  .container { padding: 24px; }
+
+  .card-list {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Dashboard: 4 summary cards across */
+  .dash-cards {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .app-name { font-size: 22px; }
+}
+
+@media (min-width: 1024px) {
+  .card-list {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  table { font-size: 15px; }
+}
+
+/* ---------- Phones: each invoice row becomes a stacked card ---------- */
+@media (max-width: 600px) {
+  table,
+  tbody {
+    display: block;
+    width: 100%;
+  }
+
+  thead { display: none; }
+
+  /* One card per invoice row */
+  tr {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+  }
+
+  /* Overdue: red card, text stays readable */
+  tr.overdue {
+    background: #fdecea;
+    border-color: #f5c2bd;
+  }
+
+  tr.overdue td {
+    background: transparent;
+  }
+
+  /* Each cell: label on the left, value on the right */
+  td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex: 1 1 100%;
+    padding: 4px 0;
+    border-bottom: none;
+  }
+
+  td::before {
+    content: attr(data-label);
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  /* First line: Invoice name on the left, Amount on the right, no label */
+  td[data-label="Invoice"],
+  td[data-label="Amount"] {
+    font-weight: 700;
+    font-size: 16px;
+  }
+
+  td[data-label="Invoice"] {
+    order: 1;
+    flex: 1 1 auto;
+    justify-content: flex-start;
+  }
+
+  td[data-label="Invoice"]::before,
+  td[data-label="Amount"]::before {
+    content: none;
+  }
+
+  td[data-label="Amount"] {
+    order: 2;
+    flex: 0 0 auto;
+  }
+
+  /* Client and Project (All invoices screen) and the rest sit below */
+  td[data-label="Client"],
+  td[data-label="Project"],
+  td[data-label="Due date"],
+  td[data-label="Status"],
+  td[data-label="Paid date"] {
+    order: 3;
+  }
+
+  /* Actions (buttons) go last, full width, no label; empty action cells are hidden */
+  td[data-label="Actions"] {
+    order: 4;
+    flex: 1 1 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  td[data-label="Actions"]::before {
+    content: none;
+  }
+
+  td.actions:empty {
+    display: none;
+  }
+}
+
+/* ---------- Forecast ---------- */
+.forecast-chart {
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+.forecast-cards {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.forecast-table-wrap,
+.forecast-cards,
+.forecast-cards .summary {
+  overflow-wrap: anywhere;
+}
+
+.forecast-toggle button {
+  min-height: 40px;
+}
+
+@media (min-width: 600px) {
+  .forecast-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+

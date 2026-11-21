@@ -8,6 +8,7 @@
   --bg: #f5f6f8;
   --card: #ffffff;
   --accent: #2b59c3;
+  --danger: #c62828;
 }
 
 * { box-sizing: border-box; }
@@ -32,6 +33,12 @@ h1, h2, h3 { margin: 0 0 8px; line-height: 1.2; }
 
 .muted { color: var(--muted); font-size: 14px; }
 .num { text-align: right; white-space: nowrap; }
+
+/* Negative money is red (danger only) */
+.neg { color: var(--danger); }
+
+/* Small grey note at the top of the dashboard */
+.sample-note { font-size: 13px; margin: 0 0 12px; }
 
 /* ---------- Header and nav ---------- */
 .site-header {
@@ -72,14 +79,15 @@ h1, h2, h3 { margin: 0 0 8px; line-height: 1.2; }
 .summary {
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 14px 16px;
   margin-bottom: 16px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 2px 8px rgba(15, 23, 42, 0.06);
 }
 
 .summary-amount {
-  font-size: 24px;
-  font-weight: 700;
+  font-size: 28px;
+  font-weight: 800;
 }
 
 .card-list {
@@ -94,8 +102,9 @@ h1, h2, h3 { margin: 0 0 8px; line-height: 1.2; }
   display: block;
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 14px 16px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 2px 8px rgba(15, 23, 42, 0.06);
   text-decoration: none;
   color: var(--ink);
 }
@@ -131,9 +140,10 @@ h1, h2, h3 { margin: 0 0 8px; line-height: 1.2; }
 .project {
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 14px 16px;
   margin-bottom: 16px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 2px 8px rgba(15, 23, 42, 0.06);
 }
 
 .project-head {
@@ -229,7 +239,7 @@ tr.overdue td {
 .flash {
   background: #e3efff;
   color: #1d4f9c;
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 10px 14px;
   margin: 0 0 16px;
   font-size: 14px;
@@ -249,7 +259,7 @@ tr.overdue td {
   margin: auto;
   padding: 16px;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 12px;
   color: var(--ink);
   box-sizing: border-box;
 }
@@ -345,8 +355,9 @@ tr.overdue td {
 .not-found {
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 20px 16px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 2px 8px rgba(15, 23, 42, 0.06);
 }
 
 /* ---------- Dashboard ---------- */
@@ -364,7 +375,7 @@ tr.overdue td {
   overflow-wrap: anywhere;
 }
 
-.dash-card .summary-amount { font-size: 20px; }
+.dash-card .summary-amount { font-size: 24px; font-weight: 800; }
 
 .dash-title {
   margin: 20px 0 10px;
@@ -389,9 +400,10 @@ tr.overdue td {
 .owe-card {
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 14px 16px;
   min-width: 0;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 2px 8px rgba(15, 23, 42, 0.06);
   overflow-wrap: anywhere;
 }
 
@@ -409,7 +421,7 @@ tr.overdue td {
   font-size: 16px;
 }
 
-.owe-total { font-weight: 700; }
+.owe-total { font-weight: 800; font-size: 18px; }
 
 .owe-rows {
   list-style: none;
@@ -446,9 +458,10 @@ tr.overdue td {
   background: var(--card);
   border: 1px solid var(--line);
   border-left: 4px solid var(--line);
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 12px 14px;
   display: flex;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 2px 8px rgba(15, 23, 42, 0.06);
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
@@ -521,9 +534,10 @@ tr.overdue td {
     align-items: center;
     background: var(--card);
     border: 1px solid var(--line);
-    border-radius: 10px;
+    border-radius: 12px;
     padding: 12px 14px;
     margin-bottom: 12px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 2px 8px rgba(15, 23, 42, 0.06);
   }
 
   /* Overdue: red card, text stays readable */

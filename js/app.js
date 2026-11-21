@@ -8,9 +8,19 @@
 
 // ---------- Pure helpers ----------
 
-// Money in Indian format: 120000 -> "₹1,20,000"
+// Money in Indian format: 120000 -> "₹1,20,000", negative -34500 -> "−₹34,500" (minus sign before the rupee symbol)
 function formatINR(n) {
+  if (n < 0) return "\u2212₹" + Intl.NumberFormat("en-IN").format(-n);
   return "₹" + Intl.NumberFormat("en-IN").format(n);
+}
+
+// Short money for chart axes: 150000 -> "₹1.5L", 50000 -> "₹50K", -34500 -> "−₹35K"
+function formatShortINR(n) {
+  const sign = n < 0 ? "\u2212" : "";
+  const a = Math.abs(n);
+  if (a >= 100000) return sign + "₹" + String(Math.round(a / 10000) / 10) + "L";
+  if (a >= 1000) return sign + "₹" + Math.round(a / 1000) + "K";
+  return sign + "₹" + Math.round(a);
 }
 
 // Date in Indian English: "12 Mar 2025"
@@ -226,6 +236,11 @@ function escapeHTML(text) {
     .replace(/'/g, "&#39;");
 }
 
+// Money as HTML: negative amounts get the "neg" class (shown in red)
+function moneyHTML(n) {
+  return n < 0 ? '<span class="neg">' + formatINR(n) + "</span>" : formatINR(n);
+}
+
 function statusBadge(status) {
   const cls = "badge-" + status.toLowerCase();
   return '<span class="badge ' + cls + '">' + status + "</span>";
@@ -247,8 +262,12 @@ function invoiceActions(inv, status, today) {
     return '<button type="button" class="btn" data-action="send" data-key="' + key + '">Mark as sent</button>';
   }
   if (isUnpaid(status)) {
+    // Draft reminder only when the invoice is due within 14 days (overdue counts as within 14)
+    const reminder = inv.dueOffset <= 14
+      ? '<button type="button" class="btn" data-action="draft-reminder" data-key="' + key + '">Draft reminder</button>'
+      : "";
     return '<button type="button" class="btn btn-primary" data-action="pay" data-key="' + key + '">Record payment</button>' +
-      '<button type="button" class="btn" data-action="draft-reminder" data-key="' + key + '">Draft reminder</button>' +
+      reminder +
       reminderNote(inv, today);
   }
   return "";
@@ -633,7 +652,9 @@ function renderAlerts(rows, today) {
 
 function renderDashboardScreen(today) {
   const rows = dashboardRows(today);
-  let html = renderAlerts(rows, today);
+  // Small grey note about the sample data, above everything else
+  let html = '<p class="muted sample-note">Sample data for Kabir, a freelance designer in India. Use \'Reset demo data\' to restore.</p>';
+  html += renderAlerts(rows, today);
   html += '<div class="add-row"><button type="button" class="btn btn-primary" data-action="add-project">Add project</button></div>';
   html += renderDashboardCards(rows, today);
 
@@ -1257,8 +1278,8 @@ function forecastChartSVG(series, compareSeries) {
   const pad = (max - min) * 0.05 || 1;
   const lo = min - pad;
   const hi = max + pad;
-  const xOf = function (i) { return n > 1 ? 10 + i * 300 / (n - 1) : 10; };
-  const yOf = function (b) { return 190 - (b - lo) / (hi - lo) * 180; };
+  const xOf = function (i) { return n > 1 ? 10 + i * 880 / (n - 1) : 10; };
+  const yOf = function (b) { return 270 - (b - lo) / (hi - lo) * 240; };
 
   // Points: x, y, and red = below zero
   function pointsOf(s) {
@@ -1295,22 +1316,28 @@ function forecastChartSVG(series, compareSeries) {
   }
 
   const y0 = yOf(0);
-  let svg = '<svg class="forecast-chart" style="width:100%;height:auto" viewBox="0 0 320 200" role="img" aria-label="Cash balance by day">';
-  svg += '<line x1="10" x2="310" y1="' + y0.toFixed(1) + '" y2="' + y0.toFixed(1) + '" stroke="#666" stroke-width="1.5"></line>';
-  svg += '<text x="312" y="' + (y0 - 3).toFixed(1) + '" font-size="10" text-anchor="end">0</text>';
+  let svg = '<svg class="forecast-chart" style="width:100%;height:auto" viewBox="0 0 900 320" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Cash balance by day">';
+  svg += '<line x1="10" x2="890" y1="' + y0.toFixed(1) + '" y2="' + y0.toFixed(1) + '" stroke="#666" stroke-width="1.5"></line>';
+  svg += '<text x="890" y="' + (y0 - 3).toFixed(1) + '" font-size="12" fill="#8a8f98" text-anchor="end">0</text>';
   if (compareSeries) {
     const greyPoints = pointsOf(compareSeries).map(function (p) { return p.x.toFixed(1) + "," + p.y.toFixed(1); }).join(" ");
-    svg += '<polyline fill="none" stroke-width="2" stroke="#9ca3af" stroke-dasharray="6 4" points="' + greyPoints + '"></polyline>';
+    svg += '<polyline fill="none" stroke-width="2" vector-effect="non-scaling-stroke" stroke="#9ca3af" stroke-dasharray="6 4" points="' + greyPoints + '"></polyline>';
   }
   runsOf(pointsOf(series)).forEach(function (r) {
     const points = r.pts.map(function (p) { return p.x.toFixed(1) + "," + p.y.toFixed(1); }).join(" ");
-    svg += '<polyline fill="none" stroke-width="2" stroke="' + (r.red ? "#dc2626" : "#2563eb") + '" points="' + points + '"></polyline>';
+    svg += '<polyline fill="none" stroke-width="2" vector-effect="non-scaling-stroke" stroke="' + (r.red ? "#dc2626" : "#2563eb") + '" points="' + points + '"></polyline>';
   });
-  svg += '<text x="10" y="12" font-size="10">' + escapeHTML(formatINR(max)) + "</text>";
-  svg += '<text x="10" y="186" font-size="10">' + escapeHTML(formatINR(min)) + "</text>";
+  // Axis money in short form (₹1.5L, ₹50K); max at the top, min at the bottom, well apart so they never overlap
+  svg += '<text x="10" y="18" font-size="12" fill="#8a8f98">' + escapeHTML(formatShortINR(max)) + "</text>";
+  svg += '<text x="10" y="288" font-size="12" fill="#8a8f98">' + escapeHTML(formatShortINR(min)) + "</text>";
   if (n > 0) {
-    svg += '<text x="10" y="198" font-size="10">' + escapeHTML(formatDate(series[0].date)) + "</text>";
-    svg += '<text x="310" y="198" font-size="10" text-anchor="end">' + escapeHTML(formatDate(series[n - 1].date)) + "</text>";
+    // About 5 date labels spread evenly across the x-axis (fewer if the series is very short)
+    const ticks = n > 1 ? 5 : 1;
+    for (let k = 0; k < ticks; k++) {
+      const idx = ticks > 1 ? Math.round(k * (n - 1) / (ticks - 1)) : 0;
+      const anchor = k === 0 ? "start" : (k === ticks - 1 ? "end" : "middle");
+      svg += '<text x="' + xOf(idx).toFixed(1) + '" y="312" font-size="12" fill="#8a8f98" text-anchor="' + anchor + '">' + escapeHTML(formatDate(series[idx].date)) + "</text>";
+    }
   }
   return svg + "</svg>";
 }
@@ -1489,8 +1516,8 @@ function renderForecastScreen(today) {
   Object.keys(delays).forEach(function (id) {
     const d = delays[id];
     const text = d.count === 0
-      ? d.name + ": no history yet"
-      : d.name + ": pays about " + d.avg + " days late (" + d.count + " " + (d.count === 1 ? "invoice" : "invoices") + ")";
+      ? "no history yet"
+      : "pays about " + d.avg + " days late (" + d.count + " " + (d.count === 1 ? "invoice" : "invoices") + ")";
     html += "<tr>" +
       '<td data-label="Client">' + escapeHTML(d.name) + "</td>" +
       '<td data-label="Average delay">' + escapeHTML(text) + "</td>" +
@@ -1518,15 +1545,15 @@ function renderForecastScreen(today) {
   const firstNeg = stats.firstNegative;
   html += '<div class="forecast-cards">' +
     '<div class="summary"><div class="muted">Cash today</div>' +
-    '<div class="summary-amount">' + formatINR(cash) + "</div></div>" +
+    '<div class="summary-amount">' + moneyHTML(cash) + "</div></div>" +
     '<div class="summary"><div class="muted">Lowest balance in this period</div>' +
-    '<div class="summary-amount">' + formatINR(lowest.value) + "</div>" +
+    '<div class="summary-amount">' + moneyHTML(lowest.value) + "</div>" +
     '<div class="muted">' + formatDate(lowest.date) + " · in " + plural(lowest.offset, "day") + "</div></div>" +
     '<div class="summary"><div class="muted">First day cash goes below zero</div>' +
     '<div class="summary-amount">' + (firstNeg ? formatDate(firstNeg.date) : "never") + "</div>" +
     '<div class="muted">' + (firstNeg ? "in " + plural(firstNeg.offset, "day") : "") + "</div></div>" +
     '<div class="summary"><div class="muted">Cash at the end of the period</div>' +
-    '<div class="summary-amount">' + formatINR(lastDay.balance) + "</div>" +
+    '<div class="summary-amount">' + moneyHTML(lastDay.balance) + "</div>" +
     '<div class="muted">' + formatDate(lastDay.date) + "</div></div>" +
     "</div>";
 
@@ -1546,7 +1573,7 @@ function renderForecastScreen(today) {
       html += "<li>" + formatDate(day.date) + " · " +
         (isIn ? "Money in: " : "Bill out: ") + escapeHTML(ev.label) + " " +
         '<span class="num">' + (isIn ? "+" : "-") + formatINR(ev.amount) + "</span> · " +
-        "Balance after: " + formatINR(ev.balance) + "</li>";
+        "Balance after: " + moneyHTML(ev.balance) + "</li>";
     });
   });
   if (!anyEvent) html += '<li class="muted">No events in this period.</li>';

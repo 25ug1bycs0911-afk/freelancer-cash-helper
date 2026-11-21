@@ -332,7 +332,7 @@ function renderClientsScreen(today) {
     const typeLabel = c.type === "agency" ? "Agency" : "Direct";
     const projectCount = c.projects.length + (c.projects.length === 1 ? " project" : " projects");
 
-    html += '<li><a class="client-card" href="#/client/' + escapeHTML(c.id) + '">' +
+    html += '<li><a class="client-card card" href="#/client/' + escapeHTML(c.id) + '">' +
       '<div class="client-name">' + escapeHTML(c.name) + "</div>" +
       '<div class="client-meta"><span>' + typeLabel + "</span><span>" + projectCount + "</span></div>" +
       '<div class="client-unpaid">Unpaid: ' + formatINR(unpaid) + "</div>" +
@@ -479,8 +479,8 @@ function owedGroups(rows) {
 
 // One summary card: label, big value, small note (value and note must already be escaped)
 function dashCard(label, value, note) {
-  return '<div class="summary dash-card"><div class="muted">' + escapeHTML(label) + "</div>" +
-    '<div class="summary-amount">' + value + "</div>" +
+  return '<div class="summary dash-card card stat-card"><div class="muted">' + escapeHTML(label) + "</div>" +
+    '<div class="summary-amount stat-num" data-countup>' + value + "</div>" +
     '<div class="muted">' + note + "</div></div>";
 }
 
@@ -510,9 +510,10 @@ function renderDashboardCards(rows, today) {
 
 // One "Who owes me" card: client name (link), total owed, then one row per unpaid invoice
 function owedCard(g, today) {
-  let html = '<li class="owe-card"><div class="owe-head">' +
+  let html = '<li class="owe-card card"><div class="owe-head">' +
     '<a class="owe-name" href="#/client/' + escapeHTML(g.client.id) + '">' + escapeHTML(g.client.name) + "</a>" +
-    '<span class="owe-total">' + formatINR(g.total) + "</span></div>" +
+    (g.worstOverdue > 0 ? '<span class="pill-late">' + plural(g.worstOverdue, "day") + " overdue</span>" : "") +
+    '<span class="owe-total amount-lg">' + formatINR(g.total) + "</span></div>" +
     '<ul class="owe-rows">';
   g.rows.forEach(function (r) {
     html += '<li class="owe-row"><div class="owe-line">' +
@@ -552,7 +553,7 @@ let showAllAlerts = false;
 
 // "Draft reminder" button for one invoice
 function draftReminderButton(key) {
-  return '<button type="button" class="btn" data-action="draft-reminder" data-key="' + escapeHTML(key) + '">Draft reminder</button>';
+  return '<button type="button" class="btn btn-secondary" data-action="draft-reminder" data-key="' + escapeHTML(key) + '">Draft reminder</button>';
 }
 
 // Build the alerts for today, most urgent first. Each alert: { tone, text (HTML, already escaped), button (HTML), reminded }
@@ -624,7 +625,7 @@ function buildAlerts(rows, today) {
         tone: "info",
         text: escapeHTML(r.client.name) + "'s " + formatINR(r.invoice.amount) +
           " invoice is still a draft and is due in " + plural(r.dueIn, "day") + ".",
-        button: '<button type="button" class="btn" data-action="send" data-key="' + escapeHTML(r.invoice.key) + '">Mark as sent</button>'
+        button: '<button type="button" class="btn btn-secondary" data-action="send" data-key="' + escapeHTML(r.invoice.key) + '">Mark as sent</button>'
       });
     });
 
@@ -640,23 +641,52 @@ function renderAlerts(rows, today) {
   let html = '<section class="alerts"><h2 class="dash-title">Do this today</h2>';
   if (all.length === 0) html += '<p class="muted">Nothing needs doing today.</p>';
   shown.forEach(function (a) {
-    html += '<div class="alert-card alert-' + a.tone + '">' +
+    const badge = a.tone === "danger" ? "red" : (a.tone === "warn" ? "amber" : "violet");
+    const dot = a.tone === "danger" ? '<span class="alert-dot pulse" aria-hidden="true"></span>' : "";
+    html += '<div class="alert-card alert-row alert-' + a.tone + '">' +
+      '<span class="alert-badge ' + badge + '" aria-hidden="true"></span>' + dot +
       '<p class="alert-text">' + a.text + "</p>" +
       '<div class="alert-actions">' + a.button + "</div></div>";
   });
   if (all.length > ALERT_LIMIT && !showAllAlerts) {
-    html += '<button type="button" class="btn alert-more" data-action="alerts-show-all">Show all</button>';
+    html += '<button type="button" class="btn btn-secondary alert-more" data-action="alerts-show-all">Show all</button>';
   }
   return html + "</section>";
+}
+
+// Hero card for the dashboard: end-of-period cash, lowest balance and date, and a small line chart of the same forecast series
+function heroCardHTML(today) {
+  const receipts = forecastReceipts(today);
+  const cash = cashToday();
+  const series = forecastSeries(cash, receipts, appState.bills, today, forecastDays);
+  const stats = forecastStats(series, cash);
+  const lowest = stats.lowest;
+  let svg = "";
+  if (series.length > 1) {
+    const vals = series.map(function (d) { return d.balance; });
+    const lo = Math.min.apply(null, vals);
+    const span = (Math.max.apply(null, vals) - lo) || 1;
+    const pts = series.map(function (d, i) {
+      const x = (i * 300 / (series.length - 1)).toFixed(1);
+      const y = (70 - (d.balance - lo) / span * 60).toFixed(1);
+      return x + "," + y;
+    }).join(" ");
+    svg = '<svg class="hero-chart" viewBox="0 0 300 80" preserveAspectRatio="none" aria-hidden="true">' +
+      '<polyline fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" points="' + pts + '"></polyline></svg>';
+  }
+  return '<div class="card hero-card"><div class="muted">Cash at the end of the period</div>' +
+    '<div class="hero-amount">' + moneyHTML(stats.end) + "</div>" +
+    '<span class="hero-pill">Lowest ' + formatINR(lowest.value) + " · " + formatDate(lowest.date) + "</span>" +
+    svg + "</div>";
 }
 
 function renderDashboardScreen(today) {
   const rows = dashboardRows(today);
   // Small grey note about the sample data, above everything else
   let html = '<p class="muted sample-note">Sample data for Kabir, a freelance designer in India. Use \'Reset demo data\' to restore.</p>';
+  html += '<div class="dash-hero-row">' + heroCardHTML(today) + renderDashboardCards(rows, today) + "</div>";
   html += renderAlerts(rows, today);
   html += '<div class="add-row"><button type="button" class="btn btn-primary" data-action="add-project">Add project</button></div>';
-  html += renderDashboardCards(rows, today);
 
   // Who owes me: unpaid, part-paid and overdue invoices, one card per client
   html += '<h2 class="dash-title">Who owes me</h2>';
@@ -1264,6 +1294,9 @@ function forecastStats(series, openingBalance) {
 // Forecast length in days (30, 60 or 90), set by the period buttons
 let forecastDays = 90;
 
+// Per-chart data for the hover readout, rebuilt on every forecast render (index = data-hover on each chart wrapper)
+let forecastHoverCharts = [];
+
 // Inline SVG chart of the day-by-day balance. Blue above zero, red below zero (lines split at the zero crossings).
 // Optional compareSeries (the normal forecast) is drawn behind as a grey dashed line.
 function forecastChartSVG(series, compareSeries) {
@@ -1319,13 +1352,27 @@ function forecastChartSVG(series, compareSeries) {
   let svg = '<svg class="forecast-chart" style="width:100%;height:auto" viewBox="0 0 900 320" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Cash balance by day">';
   svg += '<line x1="10" x2="890" y1="' + y0.toFixed(1) + '" y2="' + y0.toFixed(1) + '" stroke="#666" stroke-width="1.5"></line>';
   svg += '<text x="890" y="' + (y0 - 3).toFixed(1) + '" font-size="12" fill="#8a8f98" text-anchor="end">0</text>';
+  // Gradient definitions and a filled area under the main line (closed to the bottom of the plot)
+  svg += '<defs><linearGradient id="fcLine" x1="0" x2="1"><stop offset="0" stop-color="#4f2fe8"/><stop offset="1" stop-color="#8b5cf6"/></linearGradient>' +
+  '<linearGradient id="fcArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8b5cf6" stop-opacity=".25"/><stop offset="1" stop-color="#8b5cf6" stop-opacity="0"/></linearGradient></defs>';
+  if (n > 0) {
+  const areaPts = pointsOf(series);
+  let areaD = "M" + areaPts[0].x.toFixed(1) + ",270 ";
+  areaPts.forEach(function (p) { areaD += "L" + p.x.toFixed(1) + "," + p.y.toFixed(1) + " "; });
+  areaD += "L" + areaPts[n - 1].x.toFixed(1) + ",270 Z";
+  svg += '<path d="' + areaD + '" fill="url(#fcArea)" stroke="none"></path>';
+  }
   if (compareSeries) {
     const greyPoints = pointsOf(compareSeries).map(function (p) { return p.x.toFixed(1) + "," + p.y.toFixed(1); }).join(" ");
     svg += '<polyline fill="none" stroke-width="2" vector-effect="non-scaling-stroke" stroke="#9ca3af" stroke-dasharray="6 4" points="' + greyPoints + '"></polyline>';
   }
   runsOf(pointsOf(series)).forEach(function (r) {
     const points = r.pts.map(function (p) { return p.x.toFixed(1) + "," + p.y.toFixed(1); }).join(" ");
-    svg += '<polyline fill="none" stroke-width="2" vector-effect="non-scaling-stroke" stroke="' + (r.red ? "#dc2626" : "#2563eb") + '" points="' + points + '"></polyline>';
+    if (r.red) {
+      svg += '<polyline fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" stroke="#dc2626" points="' + points + '"></polyline>';
+    } else {
+      svg += '<polyline class="draw-line" style="--len:2000" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" stroke="url(#fcLine)" points="' + points + '"></polyline>';
+    }
   });
   // Axis money in short form (₹1.5L, ₹50K); max at the top, min at the bottom, well apart so they never overlap
   svg += '<text x="10" y="18" font-size="12" fill="#8a8f98">' + escapeHTML(formatShortINR(max)) + "</text>";
@@ -1339,7 +1386,112 @@ function forecastChartSVG(series, compareSeries) {
       svg += '<text x="' + xOf(idx).toFixed(1) + '" y="312" font-size="12" fill="#8a8f98" text-anchor="' + anchor + '">' + escapeHTML(formatDate(series[idx].date)) + "</text>";
     }
   }
-  return svg + "</svg>";
+  // Hover overlay: guide line and dot, hidden until the pointer moves over the chart (moved in place by wireForecastHover)
+  svg += '<g class="fc-hover-layer" pointer-events="none">' +
+    '<line class="fc-guide" x1="0" x2="0" y1="8" y2="272" stroke="#8a8f98" stroke-width="1" vector-effect="non-scaling-stroke" opacity="0"></line>' +
+    '<circle class="fc-dot" cx="0" cy="0" r="5" fill="#8b5cf6" stroke="#ffffff" stroke-width="2" opacity="0"></circle></g>';
+  svg += "</svg>";
+
+  // Hover data for this chart (read by wireForecastHover once the chart is in the DOM)
+  const hoverIndex = forecastHoverCharts.length;
+  forecastHoverCharts.push({
+    series: series,
+    compareSeries: compareSeries || null,
+    xs: series.map(function (d, i) { return xOf(i); }),
+    ys: series.map(function (d) { return yOf(d.balance); })
+  });
+  return '<div class="fc-hover" data-hover="' + hoverIndex + '">' + svg + '<div class="fc-tip" aria-hidden="true"></div></div>';
+}
+
+// Tooltip contents for one day: date, balance (plus the normal balance for the what-if chart), then that day's events
+function forecastTipHTML(info, i) {
+  const day = info.series[i];
+  const bal = day.balance;
+  let html = '<div class="fc-tip-date">' + escapeHTML(formatDate(day.date)) + "</div>" +
+    '<div class="fc-tip-bal' + (bal < 0 ? " is-neg" : "") + '">' + escapeHTML(formatINR(bal));
+  if (info.compareSeries) {
+    html += ' <span class="fc-tip-normal">Normal: ' + escapeHTML(formatINR(info.compareSeries[i].balance)) + "</span>";
+  }
+  html += "</div>";
+  day.events.forEach(function (ev) {
+    const isIn = ev.type === "in";
+    html += '<div class="fc-tip-ev">' + (isIn ? "Payment in: " : "Bill out: ") + escapeHTML(ev.label) + " " +
+      (isIn ? "+" : "\u2212") + escapeHTML(formatINR(ev.amount)) + "</div>";
+  });
+  return html;
+}
+
+// Hover readout on each forecast chart. The guide line, dot and tooltip are updated in place;
+// the SVG is never re-rendered, so the draw-in animation is not restarted.
+function wireForecastHover() {
+  document.querySelectorAll(".fc-hover[data-hover]").forEach(function (wrap) {
+    const info = forecastHoverCharts[Number(wrap.dataset.hover)];
+    if (!info || info.series.length === 0) return;
+    const svg = wrap.querySelector(".forecast-chart");
+    const tip = wrap.querySelector(".fc-tip");
+    const guide = svg.querySelector(".fc-guide");
+    const dot = svg.querySelector(".fc-dot");
+    let shown = -1;
+
+    // Day whose x position is closest to a viewBox x
+    function nearestDay(vx) {
+      let best = 0;
+      info.xs.forEach(function (x, i) {
+        if (Math.abs(x - vx) < Math.abs(info.xs[best] - vx)) best = i;
+      });
+      return best;
+    }
+
+    function show(event) {
+      const ctm = svg.getScreenCTM();
+      if (!ctm) return;
+      const pt = svg.createSVGPoint();
+      pt.x = event.clientX;
+      pt.y = event.clientY;
+      const vx = pt.matrixTransform(ctm.inverse()).x;
+      const i = nearestDay(vx);
+      const x = info.xs[i].toFixed(1);
+      guide.setAttribute("x1", x);
+      guide.setAttribute("x2", x);
+      guide.setAttribute("opacity", "1");
+      dot.setAttribute("cx", x);
+      dot.setAttribute("cy", info.ys[i].toFixed(1));
+      dot.setAttribute("fill", info.series[i].balance < 0 ? "#dc2626" : "#8b5cf6");
+      dot.setAttribute("opacity", "1");
+      if (i !== shown) {
+        tip.innerHTML = forecastTipHTML(info, i);
+        shown = i;
+      }
+
+      // Beside the pointer; flipped to the left if it would pass the right edge of the chart
+      const box = wrap.getBoundingClientRect();
+      const plot = svg.getBoundingClientRect();
+      const px = event.clientX - box.left;
+      const py = event.clientY - box.top;
+      const w = tip.offsetWidth;
+      const h = tip.offsetHeight;
+      const minX = plot.left - box.left;
+      const maxX = plot.right - box.left;
+      let left = px + 14;
+      if (left + w > maxX) left = px - 14 - w;
+      left = Math.max(minX, Math.min(left, maxX - w));
+      const top = Math.max(0, Math.min(py + 14, box.height - h));
+      tip.style.left = left + "px";
+      tip.style.top = top + "px";
+      tip.classList.add("is-on");
+    }
+
+    function hide() {
+      guide.setAttribute("opacity", "0");
+      dot.setAttribute("opacity", "0");
+      tip.classList.remove("is-on");
+    }
+
+    svg.addEventListener("pointerdown", show);
+    svg.addEventListener("pointermove", show);
+    svg.addEventListener("pointerleave", hide);
+    svg.addEventListener("pointercancel", hide);
+  });
 }
 
 // ---------- Cash forecast: "What if?" (transient, not saved) ----------
@@ -1474,6 +1626,7 @@ function handleWhatIfChange(event) {
 
 
 function renderForecastScreen(today) {
+  forecastHoverCharts = [];
   const receipts = forecastReceipts(today);
   const cash = cashToday();
   const series = forecastSeries(cash, receipts, appState.bills, today, forecastDays);
@@ -1612,6 +1765,44 @@ function handleForecastSubmit(event) {
 
 
 
+// Count up the summary numbers from 0 to their final value over 1600ms (skipped for reduced motion)
+function countUpSummary() {
+  if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  document.querySelectorAll("[data-countup]").forEach(function (el) {
+    const finalText = el.textContent;
+    const m = finalText.match(/\d[\d,]*(\.\d+)?/);
+    if (!m) return;
+    const target = Number(m[0].replace(/,/g, ""));
+    const decimals = m[1] ? m[1].length - 1 : 0;
+    const indian = m[0].indexOf(",") !== -1;
+    const prefix = finalText.slice(0, m.index);
+    const suffix = finalText.slice(m.index + m[0].length);
+    function textAt(v) {
+      const s = indian
+        ? v.toLocaleString("en-IN", { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
+        : v.toFixed(decimals);
+      return prefix + s + suffix;
+    }
+    let t0 = null;
+    function step(now) {
+      if (t0 === null) t0 = now;
+      const p = Math.min(1, (now - t0) / 1600);
+      const eased = 1 - Math.pow(1 - p, 3);
+      el.textContent = p < 1 ? textAt(target * eased) : finalText;
+      if (p < 1) requestAnimationFrame(step);
+    }
+    el.textContent = textAt(0);
+    requestAnimationFrame(step);
+  });
+}
+
+// Staggered rise animation for cards and alert rows (60ms apart)
+function staggerReveal() {
+  document.querySelectorAll("#app .card, #app .alert-row").forEach(function (el, i) {
+    el.style.animationDelay = (i * 60) + "ms";
+  });
+}
+
 function render() {
   // Empty hash -> go to the dashboard (this fires hashchange again, which renders)
   if (!location.hash) {
@@ -1642,6 +1833,7 @@ function render() {
   }
 
   document.getElementById("app").innerHTML = html;
+  wireForecastHover();
 
   // Highlight the current nav link. "Clients" also covers the client page.
   document.querySelectorAll(".main-nav a").forEach(function (link) {
@@ -1649,6 +1841,11 @@ function render() {
     link.classList.toggle("active", active);
   });
 
+  if (route.name === "dashboard") countUpSummary();
+  if (route.name === "dashboard" || route.name === "forecast") staggerReveal();
+  document.querySelectorAll(".draw-line").forEach(function (el) {
+    el.style.setProperty("--len", String(Math.ceil(el.getTotalLength())));
+  });
   window.scrollTo(0, 0);
 }
 

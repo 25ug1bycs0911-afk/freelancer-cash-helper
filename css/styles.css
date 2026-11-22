@@ -658,13 +658,21 @@ tr.overdue td {
 
 /* ---------- Restyle: lavender theme, cards, hero, alerts, motion ---------- */
 .logo-mark {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 28px;
   height: 28px;
   border-radius: 8px;
   background: linear-gradient(135deg, #4f2fe8, #8b5cf6);
   vertical-align: middle;
   margin-right: 8px;
+}
+
+.logo-mark svg {
+  display: block;
+  width: 20px;
+  height: 20px;
 }
 
 .btn-secondary {
@@ -718,21 +726,31 @@ tr.overdue td {
   letter-spacing: -0.02em;
 }
 
+/* Hero label: white, 85% opacity, bold */
+.hero-label {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 14px;
+  font-weight: 700;
+}
+
 .hero-pill {
+  position: relative;
+  z-index: 1;
   display: inline-flex;
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.25);
   border-radius: 999px;
   padding: 6px 12px;
   font-size: 13px;
   font-weight: 700;
 }
 
+/* Background chart: lower right half of the card, behind the amount and pill */
 .hero-chart {
   position: absolute;
-  inset: auto 0 0 0;
-  width: 100%;
-  height: 70%;
-  opacity: 0.35;
+  inset: auto 0 0 50%;
+  width: 50%;
+  height: 50%;
+  opacity: 0.4;
   pointer-events: none;
   color: #fff;
 }
@@ -769,25 +787,26 @@ tr.overdue td {
 }
 
 .alert-badge {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border-radius: 12px;
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex: 0 0 auto;
+  color: #fff;
 }
 
-.alert-badge.red { background: #fee2e2; color: #ef4444; }
-.alert-badge.amber { background: #fef3c7; color: #d97706; }
-.alert-badge.violet { background: #ede9ff; color: #4f2fe8; }
-
-.alert-dot {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #ef4444;
+.alert-badge svg {
+  display: block;
+  width: 20px;
+  height: 20px;
 }
+
+.alert-badge.red { background: #ef4444; }
+.alert-badge.amber { background: #d97706; }
+.alert-badge.violet { background: #7c3aed; }
+.alert-badge.blue { background: #2563eb; }
 
 /* Motion: only when the user has not asked for reduced motion */
 @media (prefers-reduced-motion: no-preference) {
@@ -800,10 +819,6 @@ tr.overdue td {
     to { stroke-dashoffset: 0; }
   }
 
-  @keyframes pulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5); }
-    50% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
-  }
 
   /* Entrance runs once on page load. Hover/focus never touch animation or opacity.
      backwards (not both): a forwards-filled transform would pin the card and block the hover lift. */
@@ -827,9 +842,6 @@ tr.overdue td {
     animation: draw 2200ms ease forwards;
   }
 
-  .alert-dot.pulse {
-    animation: pulse 2.4s ease-in-out infinite;
-  }
 
   /* Hover lift only: no animation or opacity here, so hover cannot replay the entrance. */
   .card:hover,
@@ -854,7 +866,6 @@ tr.overdue td {
   .stat-card,
   .alert-row,
   .draw-line,
-  .alert-dot.pulse,
   .btn,
   .btn:active {
     animation: none;
@@ -914,6 +925,47 @@ tr.overdue td {
   .project,
   .owe-card {
     padding: 18px;
+  }
+}
+
+/* ---------- Pricing screen: cards stack on phones, side by side from 640px ---------- */
+.pricing-cards {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+}
+
+.pricing-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 18px;
+  min-width: 0;
+}
+
+.pricing-price {
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.pricing-list {
+  margin: 0 0 6px;
+  padding-left: 20px;
+}
+
+.pricing-note {
+  margin-top: 18px;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+@media (min-width: 640px) {
+  .pricing-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 

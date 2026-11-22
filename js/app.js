@@ -303,6 +303,7 @@ function parseRoute(hash) {
   if (parts[0] === "invoices") return { name: "invoices" };
   if (parts[0] === "client") return { name: "client", id: parts[1] || "" };
   if (parts[0] === "forecast") return { name: "forecast" };
+  if (parts[0] === "pricing") return { name: "pricing" };
   return { name: "clients" };
 }
 
@@ -396,6 +397,28 @@ function renderInvoicesScreen(today) {
 
   html += "</tbody></table></div>";
   return html;
+}
+
+// ---------- Pricing ----------
+
+// Static pricing screen: two plan cards and one note (buttons are not wired up yet)
+function renderPricingScreen() {
+  return '<h2 class="dash-title">Pricing</h2>' +
+    '<section class="pricing-cards">' +
+    '<div class="card pricing-card"><h3>Free</h3>' +
+    '<div class="pricing-price">₹0</div>' +
+    '<ul class="pricing-list">' +
+    "<li>Up to 3 active projects</li><li>Cash forecast</li><li>Reminders</li>" +
+    "</ul>" +
+    '<button type="button" class="btn" disabled>Current plan</button></div>' +
+    '<div class="card pricing-card"><h3>Pro</h3>' +
+    '<div class="pricing-price">₹499 <span class="muted">per month</span></div>' +
+    '<ul class="pricing-list">' +
+    "<li>Unlimited projects</li><li>WhatsApp reminders</li><li>What-if scenarios</li>" +
+    "</ul>" +
+    '<button type="button" class="btn btn-primary" disabled>Coming soon</button></div>' +
+    "</section>" +
+    '<p class="muted pricing-note">Built for freelancers who lose sleep over late payments.</p>';
 }
 
 // ---------- Dashboard ----------
@@ -575,6 +598,7 @@ function buildAlerts(rows, today) {
   if (firstNeg) {
     alerts.push({
       tone: "danger",
+      kind: "cash",
       text: "Cash goes below zero on " + formatDate(firstNeg.date) + " (in " + plural(firstNeg.offset, "day") + "). " +
         "Lowest: " + formatINR(stats.lowest.value) + " on " + formatDate(stats.lowest.date) + ".",
       button: '<a class="btn btn-primary" href="#/forecast">See forecast</a>'
@@ -593,6 +617,7 @@ function buildAlerts(rows, today) {
     if (best) {
       alerts.push({
         tone: "warn",
+        kind: "chase-first",
         text: "Chase " + escapeHTML(best.row.client.name) + " first: if their " + formatINR(best.amount) +
           " is paid today, your cash stays above zero (lowest " + formatINR(best.lowest) + ").",
         button: draftReminderButton(best.row.invoice.key)
@@ -608,6 +633,7 @@ function buildAlerts(rows, today) {
       const reminded = getInvoiceState(r.invoice.key).lastReminded === toISODate(today);
       alerts.push({
         tone: "warn",
+        kind: "overdue",
         text: "Chase " + escapeHTML(r.client.name) + " today: " + formatINR(remainingDue(r.invoice)) +
           " is " + plural(-r.dueIn, "day") + " overdue." +
           (reminded ? ' <span class="muted">Reminded today</span>' : ""),
@@ -623,6 +649,7 @@ function buildAlerts(rows, today) {
     .forEach(function (r) {
       alerts.push({
         tone: "info",
+        kind: "draft",
         text: escapeHTML(r.client.name) + "'s " + formatINR(r.invoice.amount) +
           " invoice is still a draft and is due in " + plural(r.dueIn, "day") + ".",
         button: '<button type="button" class="btn btn-secondary" data-action="send" data-key="' + escapeHTML(r.invoice.key) + '">Mark as sent</button>'
@@ -640,11 +667,18 @@ function renderAlerts(rows, today) {
   const shown = showAllAlerts ? all : all.slice(0, ALERT_LIMIT);
   let html = '<section class="alerts"><h2 class="dash-title">Do this today</h2>';
   if (all.length === 0) html += '<p class="muted">Nothing needs doing today.</p>';
+  // Badge colour and icon per alert kind (white stroke icons, 20px)
+  const look = {
+    "cash": { badge: "red", icon: '<polyline points="3,7 9,13 13,9 21,17"/><polyline points="15,17 21,17 21,11"/>' },
+    "chase-first": { badge: "amber", icon: '<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>' },
+    "overdue": { badge: "violet", icon: '<circle cx="12" cy="12" r="9"/><polyline points="12,7 12,12 15,14"/>' },
+    "draft": { badge: "blue", icon: '<path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/>' }
+  };
   shown.forEach(function (a) {
-    const badge = a.tone === "danger" ? "red" : (a.tone === "warn" ? "amber" : "violet");
-    const dot = a.tone === "danger" ? '<span class="alert-dot pulse" aria-hidden="true"></span>' : "";
+    const k = look[a.kind] || look["draft"];
+    const icon = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + k.icon + "</svg>";
     html += '<div class="alert-card alert-row alert-' + a.tone + '">' +
-      '<span class="alert-badge ' + badge + '" aria-hidden="true"></span>' + dot +
+      '<span class="alert-badge ' + k.badge + '" aria-hidden="true">' + icon + "</span>" +
       '<p class="alert-text">' + a.text + "</p>" +
       '<div class="alert-actions">' + a.button + "</div></div>";
   });
@@ -674,7 +708,7 @@ function heroCardHTML(today) {
     svg = '<svg class="hero-chart" viewBox="0 0 300 80" preserveAspectRatio="none" aria-hidden="true">' +
       '<polyline fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" points="' + pts + '"></polyline></svg>';
   }
-  return '<div class="card hero-card"><div class="muted">Cash at the end of the period</div>' +
+  return '<div class="card hero-card"><div class="muted hero-label">Cash at the end of the period</div>' +
     '<div class="hero-amount">' + moneyHTML(stats.end) + "</div>" +
     '<span class="hero-pill">Lowest ' + formatINR(lowest.value) + " · " + formatDate(lowest.date) + "</span>" +
     svg + "</div>";
@@ -1827,6 +1861,8 @@ function render() {
     html = renderDashboardScreen(today);
   } else if (route.name === "forecast") {
     html = renderForecastScreen(today);
+  } else if (route.name === "pricing") {
+    html = renderPricingScreen();
   } else {
     html = renderClientsScreen(today);
   }

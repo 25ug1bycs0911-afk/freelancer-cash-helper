@@ -1095,12 +1095,16 @@ function handleActionClick(event) {
   else if (action === "invoices-filter") filterInvoices(button);
   else if (action === "forecast-days") {
     forecastDays = Number(button.dataset.days);
-    render();
+    renderInPage('[data-action="forecast-days"][data-days="' + button.dataset.days + '"]');
   }
   else if (action === "whatif-clear") {
     whatIfClientId = null;
     whatIfDelay = 15;
-    render();
+    renderInPage('[data-action="whatif-clear"]');
+  }
+  else if (action === "forecast-events-toggle") {
+    forecastEventsExpanded = !forecastEventsExpanded;
+    renderInPage('[data-action="forecast-events-toggle"]');
   }
 }
 
@@ -1439,6 +1443,9 @@ function forecastStats(series, openingBalance) {
 // Forecast length in days (30, 60 or 90), set by the period buttons
 let forecastDays = 90;
 
+// Upcoming events on the Forecast page: false = first 8 only, true = all of them
+let forecastEventsExpanded = false;
+
 // Per-chart data for the hover readout, rebuilt on every forecast render (index = data-hover on each chart wrapper)
 let forecastHoverCharts = [];
 
@@ -1705,11 +1712,12 @@ function renderWhatIfSection(today, receipts, series, stats) {
   const delayOptions = [7, 15, 30].map(function (d) {
     return '<option value="' + d + '"' + (d === whatIfDelay ? " selected" : "") + ">" + d + " days</option>";
   }).join("");
-  let html = '<h2 class="dash-title">What if?</h2>' +
+  let html = '<div class="card whatif-card">' +
+    '<h2 class="dash-title">What if?</h2>' +
     '<div class="whatif" style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;max-width:100%">' +
     '<label>Client<select id="whatif-client">' + clientOptions + "</select></label>" +
     '<label>Client pays later<select id="whatif-delay">' + delayOptions + "</select></label>" +
-    '<button type="button" class="btn" data-action="whatif-clear">Clear what-if</button>' +
+    '<button type="button" class="btn btn-secondary" data-action="whatif-clear">Clear what-if</button>' +
     "</div>";
 
   // Plain sentence
@@ -1740,18 +1748,22 @@ function renderWhatIfSection(today, receipts, series, stats) {
   // Comparison table
   html += '<div class="table-wrap"><table><thead><tr><th></th><th>Normal</th><th>What if?</th></tr></thead><tbody>' +
     "<tr><td>Lowest balance</td>" +
-    '<td class="num" data-label="Normal">' + formatINR(low.value) + '<div class="muted">' + formatDate(low.date) + "</div></td>" +
-    '<td class="num" data-label="What if?">' + formatINR(wLow.value) + '<div class="muted">' + formatDate(wLow.date) + "</div></td></tr>" +
+    '<td class="num" data-label="Normal">' + moneyHTML(low.value) + '<div class="muted">' + formatDate(low.date) + "</div></td>" +
+    '<td class="num" data-label="What if?">' + moneyHTML(wLow.value) + '<div class="muted">' + formatDate(wLow.date) + "</div></td></tr>" +
     "<tr><td>Days below zero</td>" +
     '<td class="num" data-label="Normal">' + normalBelow + "</td>" +
     '<td class="num" data-label="What if?">' + whatIfBelow + "</td></tr>" +
     "<tr><td>Cash at end of period</td>" +
-    '<td class="num" data-label="Normal">' + formatINR(lastDay.balance) + "</td>" +
-    '<td class="num" data-label="What if?">' + formatINR(wLast.balance) + "</td></tr>" +
+    '<td class="num" data-label="Normal">' + moneyHTML(lastDay.balance) + "</td>" +
+    '<td class="num" data-label="What if?">' + moneyHTML(wLast.balance) + "</td></tr>" +
     "</tbody></table></div>";
 
   // Chart: normal (grey dashed) and what-if (solid)
-  html += '<p class="muted">Grey dashed line: normal forecast. Solid line: what-if. Red: below zero.</p>';
+  html += '<div class="forecast-legend">' +
+    '<span class="fl-chip"><i class="fl-swatch fl-dashed"></i>Grey dashed line: normal forecast</span>' +
+    '<span class="fl-chip"><i class="fl-swatch fl-solid"></i>Solid line: what-if</span>' +
+    '<span class="fl-chip"><i class="fl-swatch fl-red"></i>Red: below zero</span>' +
+    "</div>";
   html += forecastChartSVG(whatIfSeries, series);
   html += "</div>";
   return html;
@@ -1766,7 +1778,7 @@ function handleWhatIfChange(event) {
   } else {
     return;
   }
-  render();
+  renderInPage("#" + event.target.id);
 }
 
 
@@ -1824,13 +1836,8 @@ function renderForecastScreen(today) {
   });
   html += "</tbody></table></div>";
 
-  // 5. Assumption note
-  html += '<p class="muted">Assumption: each sent invoice that is unpaid or part-paid counts for its remaining balance. ' +
-    "It is expected on its due date plus the client's average past delay, rounded to whole days. " +
-    "If that date has already passed, it is assumed paid 7 days from today. Drafts are not counted.</p>";
-
-  // 6. Period toggle
-  html += '<div class="add-row">';
+  // 5. Period toggle (pill segmented control)
+  html += '<div class="forecast-seg" role="group" aria-label="Forecast period">';
   [30, 60, 90].forEach(function (d) {
     const on = forecastDays === d;
     html += '<button type="button" class="btn forecast-toggle-btn' + (on ? " btn-primary" : "") +
@@ -1838,46 +1845,100 @@ function renderForecastScreen(today) {
   });
   html += "</div>";
 
-  // 8. Summary cards
+  // 6. Summary cards: red accent when the lowest balance is negative or cash goes below zero
   const lowest = stats.lowest;
   const firstNeg = stats.firstNegative;
   html += '<div class="forecast-cards">' +
-    '<div class="summary"><div class="muted">Cash today</div>' +
-    '<div class="summary-amount">' + moneyHTML(cash) + "</div></div>" +
-    '<div class="summary"><div class="muted">Lowest balance in this period</div>' +
-    '<div class="summary-amount">' + moneyHTML(lowest.value) + "</div>" +
-    '<div class="muted">' + formatDate(lowest.date) + " · in " + plural(lowest.offset, "day") + "</div></div>" +
-    '<div class="summary"><div class="muted">First day cash goes below zero</div>' +
-    '<div class="summary-amount">' + (firstNeg ? formatDate(firstNeg.date) : "never") + "</div>" +
-    '<div class="muted">' + (firstNeg ? "in " + plural(firstNeg.offset, "day") : "") + "</div></div>" +
-    '<div class="summary"><div class="muted">Cash at the end of the period</div>' +
-    '<div class="summary-amount">' + moneyHTML(lastDay.balance) + "</div>" +
-    '<div class="muted">' + formatDate(lastDay.date) + "</div></div>" +
+    forecastStatHTML("violet", forecastIconSVG(FC_ICON_WALLET, 18), "Cash today", moneyHTML(cash)) +
+    forecastStatHTML(lowest.value < 0 ? "red" : "violet", forecastIconSVG(FC_ICON_TREND, 18), "Lowest balance in this period",
+      moneyHTML(lowest.value), formatDate(lowest.date) + " · in " + plural(lowest.offset, "day")) +
+    forecastStatHTML(firstNeg ? "red" : "violet", forecastIconSVG(FC_ICON_CALENDAR, 18), "First day cash goes below zero",
+      firstNeg ? formatDate(firstNeg.date) : "never", firstNeg ? "in " + plural(firstNeg.offset, "day") : "") +
+    forecastStatHTML("violet", forecastIconSVG(FC_ICON_FLAG, 18), "Cash at the end of the period",
+      moneyHTML(lastDay.balance), formatDate(lastDay.date)) +
     "</div>";
 
-  // 9. Chart
-  html += forecastChartSVG(series);
+  // 7. Chart in a white card
+  html += '<div class="card forecast-chart-card"><div class="forecast-card-title">Cash forecast</div>' +
+    forecastChartSVG(series) + "</div>";
 
-  // 9b. What if? (client pays later)
+  // 8. What if? (client pays later), in its own card
   html += renderWhatIfSection(today, receipts, series, stats);
 
-  // 10. Upcoming events
-  html += '<h2 class="dash-title">Upcoming events</h2><ul class="forecast-events">';
-  let anyEvent = false;
+  // 9. Upcoming events as a vertical timeline (first 8, then show all / show less)
+  const allEvents = [];
   series.forEach(function (day) {
-    day.events.forEach(function (ev) {
-      anyEvent = true;
-      const isIn = ev.type === "in";
-      html += "<li>" + formatDate(day.date) + " · " +
-        (isIn ? "Money in: " : "Bill out: ") + escapeHTML(ev.label) + " " +
-        '<span class="num">' + (isIn ? "+" : "-") + formatINR(ev.amount) + "</span> · " +
-        "Balance after: " + moneyHTML(ev.balance) + "</li>";
-    });
+    day.events.forEach(function (ev) { allEvents.push({ day: day, ev: ev }); });
   });
-  if (!anyEvent) html += '<li class="muted">No events in this period.</li>';
-  html += "</ul>";
+  html += '<h2 class="dash-title">Upcoming events</h2>';
+  if (allEvents.length === 0) {
+    html += '<p class="muted">No events in this period.</p>';
+  } else {
+    const shown = forecastEventsExpanded ? allEvents : allEvents.slice(0, 8);
+    html += '<div class="card forecast-timeline-card"><ol class="forecast-timeline">';
+    let lastDate = null;
+    shown.forEach(function (item) {
+      const ev = item.ev;
+      const isIn = ev.type === "in";
+      const dateLabel = item.day.date !== lastDate
+        ? '<div class="tl-date">' + escapeHTML(formatDate(item.day.date)) + "</div>"
+        : "";
+      lastDate = item.day.date;
+      html += '<li class="tl-item">' + dateLabel +
+        '<div class="tl-row">' +
+        '<span class="tl-icon ' + (isIn ? "is-in" : "is-out") + '">' +
+          forecastIconSVG(isIn ? FC_ICON_DOWN_LEFT : FC_ICON_UP_RIGHT, 14) + "</span>" +
+        '<div class="tl-main">' +
+          '<div class="tl-desc"><span class="tl-kind">' + (isIn ? "Money in" : "Bill out") + "</span> " +
+          escapeHTML(ev.label) + "</div>" +
+          '<span class="tl-chip' + (ev.balance < 0 ? " is-neg" : "") + '">Balance after ' +
+          escapeHTML(formatINR(ev.balance)) + "</span>" +
+        "</div>" +
+        '<div class="tl-amt ' + (isIn ? "is-in" : "is-out") + '">' +
+          (isIn ? "+" : "\u2212") + escapeHTML(formatINR(ev.amount)) + "</div>" +
+        "</div></li>";
+    });
+    html += "</ol>";
+    if (allEvents.length > 8) {
+      html += '<div class="forecast-more"><button type="button" class="btn btn-secondary forecast-more-btn" data-action="forecast-events-toggle">' +
+        (forecastEventsExpanded ? "Show less" : "Show all " + allEvents.length + " events") + "</button></div>";
+    }
+    html += "</div>";
+  }
+
+  // 10. Assumption note, at the bottom of the page
+  html += '<div class="forecast-note"><span class="forecast-note-icon">' + forecastIconSVG(FC_ICON_INFO, 16) + "</span>" +
+    '<p class="muted">Assumption: each sent invoice that is unpaid or part-paid counts for its remaining balance. ' +
+    "It is expected on its due date plus the client's average past delay, rounded to whole days. " +
+    "If that date has already passed, it is assumed paid 7 days from today. Drafts are not counted.</p></div>";
   return html;
 }
+
+// Inline line icons for the Forecast page (24px grid, drawn in currentColor)
+const FC_ICON_WALLET = '<rect x="3" y="6" width="18" height="14" rx="2"/><path d="M3 10h18"/><circle cx="16" cy="14" r="1"/>';
+const FC_ICON_TREND = '<polyline points="3 7 9 13 13 9 21 17"/><polyline points="15 17 21 17 21 11"/>';
+const FC_ICON_CALENDAR = '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>';
+const FC_ICON_FLAG = '<path d="M5 21V4"/><path d="M5 4h12l-2 4 2 4H5"/>';
+const FC_ICON_INFO = '<circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 8h.01"/>';
+const FC_ICON_DOWN_LEFT = '<path d="M17 7 7 17"/><path d="M7 9v8h8"/>';
+const FC_ICON_UP_RIGHT = '<path d="M7 17 17 7"/><path d="M9 7h8v8"/>';
+
+// Small stroked SVG wrapper around one of the icon bodies above
+function forecastIconSVG(body, size) {
+  return '<svg viewBox="0 0 24 24" width="' + size + '" height="' + size + '" fill="none" stroke="currentColor" ' +
+    'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' + body + "</svg>";
+}
+
+// One summary card on the Forecast page: icon badge, label, amount and optional note. tone "red" = red accent
+function forecastStatHTML(tone, icon, label, valueHTML, noteHTML) {
+  return '<div class="summary forecast-stat' + (tone === "red" ? " is-red" : "") + '">' +
+    '<span class="forecast-stat-icon">' + icon + "</span>" +
+    '<div class="forecast-stat-body"><div class="muted">' + label + "</div>" +
+    '<div class="summary-amount">' + valueHTML + "</div>" +
+    (noteHTML === undefined ? "" : '<div class="muted">' + noteHTML + "</div>") +
+    "</div></div>";
+}
+
 
 // Save the opening cash balance (whole rupees, not negative)
 function saveOpeningBalance() {
@@ -1948,6 +2009,27 @@ function staggerReveal() {
   });
 }
 
+// True while render() is re-drawing in place (an in-page action, not a navigation)
+let inPageRender = false;
+// Selector for the control to refocus after an in-page render
+let refocusSelector = null;
+
+// Nearest ancestor of #app that scrolls on its own, or null
+function scrollingAncestor(el) {
+  for (let node = el.parentElement; node && node !== document.body; node = node.parentElement) {
+    const overflowY = getComputedStyle(node).overflowY;
+    if ((overflowY === "auto" || overflowY === "scroll") && node.scrollHeight > node.clientHeight) return node;
+  }
+  return null;
+}
+
+// Re-render after an in-page action: keep scroll position and focus, no entrance motion
+function renderInPage(selector) {
+  inPageRender = true;
+  refocusSelector = selector;
+  render();
+}
+
 function render() {
   // Empty hash -> go to the dashboard (this fires hashchange again, which renders)
   if (!location.hash) {
@@ -1979,7 +2061,14 @@ function render() {
     flashMessage = "";
   }
 
-  document.getElementById("app").innerHTML = html;
+  // Remember scroll position (window and any scrolling ancestor) so in-page renders can restore it
+  const app = document.getElementById("app");
+  const scrollX = window.scrollX;
+  const scrollY = window.scrollY;
+  const scroller = scrollingAncestor(app);
+  const scrollerTop = scroller ? scroller.scrollTop : 0;
+  app.classList.toggle("no-motion", inPageRender);
+  app.innerHTML = html;
   wireForecastHover();
 
   // Highlight the current nav link. "Clients" also covers the client page.
@@ -1989,11 +2078,24 @@ function render() {
   });
 
   if (route.name === "dashboard") countUpSummary();
-  if (route.name === "dashboard" || route.name === "forecast") staggerReveal();
-  document.querySelectorAll(".draw-line").forEach(function (el) {
-    el.style.setProperty("--len", String(Math.ceil(el.getTotalLength())));
-  });
-  window.scrollTo(0, 0);
+  if (!inPageRender) {
+    if (route.name === "dashboard" || route.name === "forecast") staggerReveal();
+    document.querySelectorAll(".draw-line").forEach(function (el) {
+      el.style.setProperty("--len", String(Math.ceil(el.getTotalLength())));
+    });
+  }
+
+  if (inPageRender) {
+    window.scrollTo({ top: scrollY, left: scrollX, behavior: "instant" });
+    if (scroller) scroller.scrollTop = scrollerTop;
+    const control = refocusSelector ? document.querySelector(refocusSelector) : null;
+    if (control) control.focus({ preventScroll: true });
+  } else {
+    // Navigation (hash change or first load): start at the top as before
+    window.scrollTo(0, 0);
+  }
+  inPageRender = false;
+  refocusSelector = null;
 }
 
 // ---------- Startup ----------

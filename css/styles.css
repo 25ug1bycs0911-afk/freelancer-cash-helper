@@ -952,6 +952,17 @@ tr.overdue td {
   }
 }
 
+/* In-page re-renders (forecast controls): no entrance animations replayed */
+#app.no-motion,
+#app.no-motion * {
+  animation: none !important;
+}
+
+#app.no-motion .draw-line {
+  stroke-dasharray: none;
+  stroke-dashoffset: 0;
+}
+
 /* Phones: 390px and similar */
 @media (max-width: 480px) {
   .header-inner { padding: 12px 14px; }
@@ -1294,6 +1305,383 @@ tr[hidden] {
 .fc-tip-ev {
   margin-top: 4px;
   white-space: nowrap;
+}
+
+
+/* ---------- Forecast page restyle (violet theme; only the Forecast screen uses these) ---------- */
+
+/* Period control: pill-shaped segmented track, active option filled with the violet gradient */
+.forecast-seg {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-width: 100%;
+  min-width: 0;
+  padding: 4px;
+  margin-bottom: 16px;
+  background: #ede9ff;
+  border-radius: 999px;
+}
+
+.forecast-seg .forecast-toggle-btn {
+  margin: 0;
+  min-height: 36px;
+  padding: 8px 16px;
+  border: 0;
+  background: transparent;
+  color: #6b6a8f;
+  border-radius: 999px;
+}
+
+.forecast-seg .forecast-toggle-btn.btn-primary {
+  background: linear-gradient(135deg, #4f2fe8, #8b5cf6);
+  color: #fff;
+}
+
+/* Summary cards: white, 4px left accent bar, 36px tinted icon badge */
+.forecast-cards .forecast-stat {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+  max-width: 100%;
+  margin: 0;
+  padding: 16px 18px 16px 22px;
+  border-radius: 20px;
+}
+
+.forecast-stat::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: linear-gradient(180deg, #4f2fe8, #8b5cf6);
+}
+
+.forecast-stat.is-red::before {
+  background: #ef4444;
+}
+
+.forecast-stat-icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #ede9ff;
+  color: #4f2fe8;
+}
+
+.forecast-stat.is-red .forecast-stat-icon {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.forecast-stat-body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.forecast-stat-body .summary-amount {
+  overflow-wrap: anywhere;
+}
+
+/* White cards shared by the chart, What if? and the timeline */
+.forecast-chart-card,
+.whatif-card,
+.forecast-timeline-card {
+  max-width: 100%;
+  min-width: 0;
+  margin-bottom: 16px;
+  padding: 20px;
+  border-radius: 20px;
+  box-shadow: 0 6px 24px rgba(79, 47, 232, 0.08);
+}
+
+.forecast-card-title {
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+/* Legend chips (replace the old legend sentence) */
+.forecast-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0 12px;
+}
+
+.fl-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #f5f3ff;
+  color: #4b4a72;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.fl-swatch {
+  display: inline-block;
+  flex: 0 0 auto;
+  width: 18px;
+  height: 0;
+  border-top: 2px solid transparent;
+}
+
+.fl-swatch.fl-dashed {
+  border-top: 2px dashed #9ca3af;
+}
+
+.fl-swatch.fl-solid {
+  border-top: 3px solid #6d4cf0;
+}
+
+.fl-swatch.fl-red {
+  width: 8px;
+  height: 8px;
+  border: 0;
+  border-radius: 50%;
+  background: #dc2626;
+}
+
+/* What if?: rounded fields, secondary pill, violet callout, invoice-style table */
+.whatif-card .whatif label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1 1 180px;
+  min-width: 0;
+  max-width: 100%;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.whatif-card select {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid #ddd8f7;
+  border-radius: 12px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+}
+
+.whatif-card .whatif .btn {
+  margin: 0;
+}
+
+.whatif-card .whatif-sentence {
+  margin: 14px 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #f3f0ff;
+  color: var(--ink);
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+
+.whatif-card th {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.whatif-card th:not(:first-child) {
+  text-align: right;
+}
+
+.whatif-card td.num {
+  font-weight: 700;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.whatif-card td.num .muted {
+  font-weight: 400;
+}
+
+.whatif-card .neg {
+  color: #dc2626;
+}
+
+@media (min-width: 601px) {
+  .whatif-card tbody tr {
+    height: 52px;
+  }
+
+  .whatif-card tbody tr:hover td {
+    background: #f5f3ff;
+  }
+}
+
+/* Upcoming events: vertical timeline */
+.forecast-timeline {
+  position: relative;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.forecast-timeline::before {
+  content: "";
+  position: absolute;
+  left: 14px;
+  top: 14px;
+  bottom: 14px;
+  width: 1px;
+  background: #ddd8f7;
+}
+
+.tl-item {
+  position: relative;
+  min-width: 0;
+  padding-bottom: 14px;
+}
+
+.tl-date {
+  padding: 4px 0 8px 44px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.tl-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.tl-icon {
+  position: relative;
+  z-index: 1;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+}
+
+.tl-icon.is-in {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.tl-icon.is-out {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.tl-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.tl-desc {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.tl-kind {
+  margin-right: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.tl-chip {
+  max-width: 100%;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #f1f1f5;
+  color: #545b64;
+  font-size: 12px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.tl-chip.is-neg {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.tl-amt {
+  flex: 0 0 auto;
+  font-size: 15px;
+  font-weight: 700;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.tl-amt.is-in {
+  color: #16a34a;
+}
+
+.tl-amt.is-out {
+  color: #dc2626;
+}
+
+.forecast-more {
+  margin-top: 8px;
+}
+
+.forecast-more-btn {
+  margin: 0;
+}
+
+/* Assumption note: muted rounded card with an info icon, at the bottom of the page */
+.forecast-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+  max-width: 100%;
+  margin: 16px 0 0;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: #f7f6fd;
+  border: 1px solid var(--line);
+}
+
+.forecast-note p {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.forecast-note-icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  margin-top: 1px;
+  color: #4f2fe8;
 }
 
 

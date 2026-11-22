@@ -859,11 +859,16 @@ function buildReminderDialog() {
     '<div class="reminder-message" id="reminder-message"></div>' +
     '<div class="form-actions">' +
     '<button type="button" class="btn btn-primary" id="reminder-copy">Copy message</button>' +
+    '<button type="button" class="btn btn-primary" id="reminder-whatsapp">Send on WhatsApp</button>' +
     '<button type="button" class="btn" id="reminder-mark">Mark reminder as sent</button>' +
     '<button type="button" class="btn" id="reminder-close">Close</button>' +
     "</div></dialog>");
 
   document.getElementById("reminder-copy").addEventListener("click", copyReminder);
+  document.getElementById("reminder-whatsapp").addEventListener("click", function () {
+    const messageText = document.getElementById("reminder-message").textContent;
+    window.open("https://wa.me/?text=" + encodeURIComponent(messageText), "_blank", "noopener");
+  });
   document.getElementById("reminder-mark").addEventListener("click", markReminderSent);
   document.getElementById("reminder-close").addEventListener("click", function () {
     reminderKey = null;

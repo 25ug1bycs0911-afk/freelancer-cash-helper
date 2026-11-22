@@ -281,7 +281,7 @@ function invoiceRow(inv, today, prefixCells, withActions) {
   const paidText = paid ? formatDate(paid) : "—";
   const rowClass = status === "Overdue" ? ' class="overdue"' : "";
   return (
-    "<tr" + rowClass + ">" +
+    "<tr" + rowClass + ' data-status="' + status + '">' +
     (prefixCells || "") +
     '<td data-label="Invoice">' + escapeHTML(inv.label) + "</td>" +
     '<td class="num" data-label="Amount">' + amountText(inv, status) + "</td>" +
@@ -313,6 +313,34 @@ function findClient(id) {
 
 // ---------- Screens ----------
 
+// Six soft avatar colours as [background, text]; a client's colour is stable (chosen from its name)
+const AVATAR_COLOURS = [
+  ["#ede9ff", "#4f2fe8"],
+  ["#e0f2fe", "#0369a1"],
+  ["#dcfce7", "#15803d"],
+  ["#fef3c7", "#b45309"],
+  ["#fce7f3", "#be185d"],
+  ["#ffe4e6", "#be123c"]
+];
+
+// One or two initials from the client name (first letters of the first two words)
+function initialsOf(name) {
+  const words = String(name).trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return "?";
+  const first = words[0].charAt(0);
+  const second = words.length > 1 ? words[1].charAt(0) : words[0].charAt(1);
+  return (first + second).toUpperCase();
+}
+
+// Stable index 0-5 from the client name (same name always gives the same colour)
+function avatarIndex(name) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = (hash * 31 + name.charCodeAt(i)) % 6;
+  }
+  return hash;
+}
+
 function renderClientsScreen(today) {
   const clients = SAMPLE_DATA.clients;
   const grandUnpaid = clients.reduce(function (sum, c) {
@@ -325,6 +353,8 @@ function renderClientsScreen(today) {
     "</section>";
 
   html += '<div class="add-row"><button type="button" class="btn btn-primary" data-action="add-project">Add project</button></div>';
+  // Average payment delay per client (same figures as the payment habits table)
+  const delays = clientDelays(today);
   html += '<ul class="card-list">';
   clients.forEach(function (c) {
     const invoices = clientInvoices(c);
@@ -332,11 +362,32 @@ function renderClientsScreen(today) {
     const drafts = draftTotal(invoices, today);
     const typeLabel = c.type === "agency" ? "Agency" : "Direct";
     const projectCount = c.projects.length + (c.projects.length === 1 ? " project" : " projects");
+    const hasOverdue = invoices.some(function (inv) {
+      return invoiceStatus(inv, today) === "Overdue";
+    });
+    // This client's share of the total unpaid amount, as a percentage (0 when nothing is unpaid)
+    const share = grandUnpaid > 0 ? Math.round((unpaid / grandUnpaid) * 1000) / 10 : 0;
+
+    const d = delays[c.id];
+    let habit;
+    if (d.count === 0) habit = ["habit-grey", "No history yet"];
+    else if (d.avg >= 15) habit = ["habit-red", "Pays about " + d.avg + " days late"];
+    else if (d.avg >= 3) habit = ["habit-amber", "Pays about " + d.avg + " days late"];
+    else habit = ["habit-green", "Pays on time"];
+
+    const colour = AVATAR_COLOURS[avatarIndex(c.name)];
 
     html += '<li><a class="client-card card" href="#/client/' + escapeHTML(c.id) + '">' +
-      '<div class="client-name">' + escapeHTML(c.name) + "</div>" +
+      (hasOverdue ? '<span class="pill-late">Overdue</span>' : "") +
+      '<div class="client-head">' +
+      '<span class="client-avatar" style="background:' + colour[0] + ";color:" + colour[1] + '">' +
+      escapeHTML(initialsOf(c.name)) + "</span>" +
+      '<div class="client-id"><div class="client-name">' + escapeHTML(c.name) + "</div>" +
       '<div class="client-meta"><span>' + typeLabel + "</span><span>" + projectCount + "</span></div>" +
+      "</div></div>" +
+      '<div><span class="habit-pill ' + habit[0] + '">' + habit[1] + "</span></div>" +
       '<div class="client-unpaid">Unpaid: ' + formatINR(unpaid) + "</div>" +
+      '<div class="unpaid-track"><div class="unpaid-fill" style="width:' + share + '%"></div></div>' +
       (drafts > 0 ? '<div class="muted">Draft (not sent): ' + formatINR(drafts) + "</div>" : "") +
       "</a></li>";
   });
@@ -381,9 +432,47 @@ function renderClientScreen(id, today) {
   return html;
 }
 
+// One summary card for the All Invoices page: icon badge, label and count (red when red is true)
+function invoiceStatCard(label, count, red, kind) {
+  // Small inline icons for the badge (colour comes from CSS via currentColor)
+  const icons = {
+    total: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><polyline points="14,3 14,8 19,8"/></svg>',
+    paid: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4,12 9,17 20,6"/></svg>',
+    unpaid: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><polyline points="12,7 12,12 15,14"/></svg>',
+    overdue: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>'
+  };
+  return '<div class="card invoice-stat invoice-stat-' + kind + '">' +
+    '<span class="invoice-stat-icon" aria-hidden="true">' + icons[kind] + "</span>" +
+    '<div class="invoice-stat-body"><div class="muted">' + label + "</div>" +
+    '<div class="invoice-stat-num' + (red ? " neg" : "") + '">' + count + "</div></div></div>";
+}
+
 function renderInvoicesScreen(today) {
-  let html = '<div class="table-wrap"><table>' +
-    "<thead><tr><th>Client</th><th>Project</th><th>Invoice</th><th>Amount</th>" +
+  // Counts come from the same flat list of invoices the dashboard uses
+  const rows = dashboardRows(today);
+  const countWhere = function (test) {
+    return rows.filter(function (r) { return test(r.status); }).length;
+  };
+
+  let html = '<div class="invoices-head"><h2 class="dash-title">All Invoices</h2>' +
+    '<p class="muted invoices-sub">Every invoice you\'ve sent, in one place.</p></div>';
+
+  html += '<section class="invoice-stats">' +
+    invoiceStatCard("Total invoices", rows.length, false, "total") +
+    invoiceStatCard("Paid", countWhere(function (s) { return s === "Paid"; }), false, "paid") +
+    invoiceStatCard("Unpaid", countWhere(isUnpaid), false, "unpaid") +
+    invoiceStatCard("Overdue", countWhere(function (s) { return s === "Overdue"; }), true, "overdue") +
+    "</section>";
+
+  // Filter pills: All is active by default
+  const filters = [["all", "All"], ["overdue", "Overdue"], ["unpaid", "Unpaid"], ["paid", "Paid"], ["draft", "Draft"]];
+  html += '<div class="filter-pills">' + filters.map(function (f) {
+    return '<button type="button" class="filter-pill' + (f[0] === "all" ? " is-active" : "") +
+      '" data-action="invoices-filter" data-filter="' + f[0] + '">' + f[1] + "</button>";
+  }).join("") + "</div>";
+
+  html += '<div class="card invoice-card table-wrap"><table>' +
+    '<thead><tr><th>Client</th><th>Project</th><th>Invoice</th><th class="num">Amount</th>' +
     "<th>Due date</th><th>Status</th><th>Paid date</th></tr></thead><tbody>";
 
   SAMPLE_DATA.clients.forEach(function (c) {
@@ -399,26 +488,42 @@ function renderInvoicesScreen(today) {
   return html;
 }
 
+// Show only the invoice rows that match a filter pill. Only the DOM is changed; no invoice data is touched.
+function filterInvoices(button) {
+  const filter = button.dataset.filter;
+  document.querySelectorAll(".filter-pill").forEach(function (p) {
+    p.classList.toggle("is-active", p === button);
+  });
+  document.querySelectorAll("#app tr[data-status]").forEach(function (tr) {
+    const status = tr.dataset.status;
+    const show = filter === "all" || (filter === "unpaid" ? isUnpaid(status) : status.toLowerCase() === filter);
+    tr.hidden = !show;
+  });
+}
+
 // ---------- Pricing ----------
 
-// Static pricing screen: two plan cards and one note (buttons are not wired up yet)
+// Static pricing screen: heading and tagline, two plan cards, and one note (buttons are not wired up yet)
 function renderPricingScreen() {
-  return '<h2 class="dash-title">Pricing</h2>' +
+  // Small violet check icon placed before each feature (colour comes from CSS)
+  const check = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4,12 9,17 20,6"/></svg>';
+  return '<div class="pricing-head"><h2 class="dash-title">Simple pricing for freelancers</h2>' +
+    '<p class="muted pricing-tagline">Built for freelancers who lose sleep over late payments.</p></div>' +
     '<section class="pricing-cards">' +
     '<div class="card pricing-card"><h3>Free</h3>' +
     '<div class="pricing-price">₹0</div>' +
     '<ul class="pricing-list">' +
-    "<li>Up to 3 active projects</li><li>Cash forecast</li><li>Reminders</li>" +
+    "<li>" + check + "Up to 3 active projects</li><li>" + check + "Cash forecast</li><li>" + check + "Reminders</li>" +
     "</ul>" +
     '<button type="button" class="btn" disabled>Current plan</button></div>' +
-    '<div class="card pricing-card"><h3>Pro</h3>' +
+    '<div class="card pricing-card pricing-pro"><span class="pricing-badge">Most popular</span><h3>Pro</h3>' +
     '<div class="pricing-price">₹499 <span class="muted">per month</span></div>' +
     '<ul class="pricing-list">' +
-    "<li>Unlimited projects</li><li>WhatsApp reminders</li><li>What-if scenarios</li>" +
+    "<li>" + check + "Unlimited projects</li><li>" + check + "WhatsApp reminders</li><li>" + check + "What-if scenarios</li>" +
     "</ul>" +
     '<button type="button" class="btn btn-primary" disabled>Coming soon</button></div>' +
     "</section>" +
-    '<p class="muted pricing-note">Built for freelancers who lose sleep over late payments.</p>';
+    '<p class="muted pricing-note">Pro pays for itself if it helps you recover one late invoice.</p>';
 }
 
 // ---------- Dashboard ----------
@@ -987,6 +1092,7 @@ function handleActionClick(event) {
     render();
   }
   else if (action === "forecast-delete-bill") deleteBill(Number(button.dataset.index));
+  else if (action === "invoices-filter") filterInvoices(button);
   else if (action === "forecast-days") {
     forecastDays = Number(button.dataset.days);
     render();

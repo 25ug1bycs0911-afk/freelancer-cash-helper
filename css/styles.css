@@ -132,8 +132,8 @@ h1, h2, h3 { margin: 0 0 8px; line-height: 1.2; letter-spacing: -0.02em; font-we
 
 .client-card .client-unpaid {
   margin-top: 8px;
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 20px;
+  font-weight: 800;
 }
 
 .back-link {
@@ -704,7 +704,80 @@ tr.overdue td {
 .alert-warn { border-left-color: #d97706; }
 .alert-info { border-left-color: #4f2fe8; }
 
-.client-card { position: relative; }
+/* Client cards: avatar + name row, habit pill, unpaid bar, lift on hover */
+.client-card {
+  position: relative;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.client-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 32px rgba(79, 47, 232, 0.16);
+}
+
+.client-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-right: 72px;
+}
+
+.client-avatar {
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.client-id {
+  min-width: 0;
+}
+
+.client-card .client-meta {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-top: 2px;
+}
+
+.habit-pill {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.habit-red { background: #fee2e2; color: #b91c1c; }
+.habit-amber { background: #fef3c7; color: #b45309; }
+.habit-green { background: #dcfce7; color: #15803d; }
+.habit-grey { background: #eceff1; color: #545b64; }
+
+.unpaid-track {
+  height: 6px;
+  margin-top: 8px;
+  border-radius: 999px;
+  background: #ede9ff;
+  overflow: hidden;
+}
+
+.unpaid-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #4f2fe8, #8b5cf6);
+}
+
+@media (max-width: 480px) {
+  .card-list {
+    grid-template-columns: 1fr;
+  }
+}
 
 /* Hero */
 .hero-card {
@@ -928,6 +1001,147 @@ tr.overdue td {
   }
 }
 
+/* ---------- All Invoices screen: heading, summary cards, filter pills, table card ---------- */
+.invoices-head .dash-title {
+  margin-top: 0;
+}
+
+.invoices-sub {
+  margin: 0 0 16px;
+}
+
+/* Four summary cards: 2 across on phones, 4 across from 640px */
+.invoice-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+  max-width: 100%;
+}
+
+.invoice-stat {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 0;
+  padding: 16px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  transition: transform 0.2s ease;
+}
+
+.invoice-stat:hover {
+  transform: translateY(-3px);
+}
+
+/* 36px rounded icon badge with a soft tint per status */
+.invoice-stat-icon {
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: var(--soft);
+  color: #5b3df5;
+}
+
+.invoice-stat-body {
+  min-width: 0;
+}
+
+.invoice-stat-num {
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.invoice-stat-total .invoice-stat-num { color: #5b3df5; }
+.invoice-stat-total .invoice-stat-icon { background: #ede9ff; color: #5b3df5; }
+
+.invoice-stat-paid .invoice-stat-num { color: #047857; }
+.invoice-stat-paid .invoice-stat-icon { background: #d1fae5; color: #047857; }
+
+.invoice-stat-unpaid .invoice-stat-num { color: #b45309; }
+.invoice-stat-unpaid .invoice-stat-icon { background: #fef3c7; color: #b45309; }
+
+/* Overdue number keeps the red from .neg */
+.invoice-stat-overdue .invoice-stat-icon { background: #fee2e2; color: #ef4444; }
+
+@media (min-width: 640px) {
+  .invoice-stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* Filter pills: active one uses the violet gradient, the others are soft */
+.filter-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+  max-width: 100%;
+}
+
+.filter-pill {
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 6px 14px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: var(--soft);
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.filter-pill.is-active {
+  background: var(--grad);
+  color: #fff;
+}
+
+/* Active pill colour by filter: All violet, Overdue red, Unpaid amber, Paid green, Draft grey */
+.filter-pill.is-active[data-filter="all"] { background: #5b3df5; }
+.filter-pill.is-active[data-filter="overdue"] { background: #ef4444; }
+.filter-pill.is-active[data-filter="unpaid"] { background: #f59e0b; }
+.filter-pill.is-active[data-filter="paid"] { background: #10b981; }
+.filter-pill.is-active[data-filter="draft"] { background: #6b7280; }
+
+/* Table card: white, rounded, soft shadow; scrolls sideways inside itself on phones */
+.invoice-card {
+  max-width: 100%;
+  padding: 16px;
+  overflow-x: auto;
+}
+
+.invoice-card th {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.invoice-card td.num {
+  font-weight: 700;
+}
+
+/* Hidden rows (filter). Needed because the phone layout sets display on rows. */
+tr[hidden] {
+  display: none;
+}
+
+/* Row height, hover and the 52px rows only apply to the table layout (not the phone cards) */
+@media (min-width: 601px) {
+  .invoice-card tbody tr {
+    height: 52px;
+  }
+
+  .invoice-card tbody tr:not(.overdue):hover td {
+    background: #f5f3ff;
+  }
+}
+
 /* ---------- Pricing screen: cards stack on phones, side by side from 640px ---------- */
 .pricing-cards {
   display: grid;
@@ -945,17 +1159,73 @@ tr.overdue td {
 }
 
 .pricing-price {
-  font-size: 28px;
-  font-weight: 700;
+  font-size: 40px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
 }
 
 .pricing-list {
   margin: 0 0 6px;
-  padding-left: 20px;
+  padding: 0;
+  list-style: none;
+  width: 100%;
 }
 
 .pricing-note {
   margin-top: 18px;
+  text-align: center;
+}
+
+/* Centred heading and tagline above the cards */
+.pricing-head {
+  text-align: center;
+}
+
+.pricing-head .dash-title {
+  margin-top: 0;
+}
+
+.pricing-tagline {
+  margin: 0 0 16px;
+}
+
+/* Feature rows: violet check icon, no bullet dots */
+.pricing-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.pricing-list svg {
+  flex: 0 0 16px;
+  stroke: var(--accent);
+}
+
+/* Button sits at the bottom of each card so the two cards line up */
+.pricing-card > .btn {
+  align-self: flex-start;
+  margin-top: auto;
+}
+
+/* Pro: gradient border (gradient behind a white padding box), bigger shadow, "Most popular" badge */
+.pricing-pro {
+  position: relative;
+  border: 2px solid transparent;
+  background: linear-gradient(#fff, #fff) padding-box, var(--grad) border-box;
+  box-shadow: 0 16px 40px rgba(79, 47, 232, 0.22);
+}
+
+.pricing-badge {
+  position: absolute;
+  top: -12px;
+  right: 18px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--grad);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .btn:disabled {

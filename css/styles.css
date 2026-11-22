@@ -407,6 +407,7 @@ tr.overdue td {
 }
 
 .owe-card {
+  position: relative;
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: 12px;

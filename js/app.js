@@ -373,7 +373,7 @@ function renderClientsScreen(today) {
     if (d.count === 0) habit = ["habit-grey", "No history yet"];
     else if (d.avg >= 15) habit = ["habit-red", "Pays about " + d.avg + " days late"];
     else if (d.avg >= 3) habit = ["habit-amber", "Pays about " + d.avg + " days late"];
-    else habit = ["habit-green", "Pays on time"];
+    else habit = ["habit-green", "Usually pays on time"];
 
     const colour = AVATAR_COLOURS[avatarIndex(c.name)];
 
